@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Valores padrão da cor-tema (verde) — usados até o Firestore carregar a
+   configuração de Aparência, e como fallback caso o admin nunca tenha
+   personalizado nada. O BrandingContext sobrescreve essas variáveis em
+   tempo real quando uma cor customizada é definida. */
+:root {
+  --c-50: 242 247 243;
+  --c-100: 224 237 226;
+  --c-200: 193 220 198;
+  --c-300: 150 194 158;
+  --c-400: 104 163 116;
+  --c-500: 63 127 77;
+  --c-600: 47 106 61;
+  --c-700: 38 84 50;
+  --c-800: 31 66 41;
+  --c-900: 23 52 32;
+  --c-950: 13 32 19;
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  @apply bg-moss-50 text-forest-950 font-body antialiased;
+}
+
+::selection { @apply bg-forest-200; }
+
+.card {
+  @apply bg-white border border-forest-100 rounded-xl shadow-card;
+}
+
+.btn {
+  @apply inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+}
+.btn-primary { @apply btn bg-forest-700 text-white hover:bg-forest-800; }
+.btn-secondary { @apply btn bg-forest-50 text-forest-800 border border-forest-200 hover:bg-forest-100; }
+.btn-danger { @apply btn bg-berry-500 text-white hover:bg-berry-600; }
+.btn-ghost { @apply btn text-forest-700 hover:bg-forest-50; }
+
+.input {
+  @apply w-full rounded-lg border border-forest-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-forest-400 focus:border-forest-400 placeholder:text-forest-400/70;
+}
+.label { @apply block text-xs font-semibold uppercase tracking-wide text-forest-600 mb-1.5; }
+
+.badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold; }
+.badge-green { @apply badge bg-forest-100 text-forest-800; }
+.badge-amber { @apply badge bg-amber-100 text-clay-600; }
+.badge-red { @apply badge bg-red-100 text-berry-600; }
+.badge-gray { @apply badge bg-forest-50 text-forest-500; }
+
+.table-wrap { @apply overflow-x-auto rounded-xl border border-forest-100; }
+table.data { @apply w-full text-sm; }
+table.data thead { @apply bg-forest-50 text-forest-700 text-xs uppercase tracking-wide; }
+table.data th { @apply text-left px-4 py-3 font-semibold; }
+table.data td { @apply px-4 py-3 border-t border-forest-100/70; }
+table.data tbody tr:hover { @apply bg-forest-50/60; }
+
+.money { @apply font-mono tabular-nums; }
+
+.modal-backdrop { @apply fixed inset-0 bg-forest-950/40 backdrop-blur-[2px] flex items-center justify-center p-4 z-50; }
+.modal-card { @apply bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto; }

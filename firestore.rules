@@ -1,0 +1,211 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isActive() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userProfile().ativo == true;
+    }
+
+    function userRole() {
+      return get(/databases/$(database)/documents/roles/$(userProfile().role_id)).data;
+    }
+
+    // Perfis "somente visualização" (Visualizador) podem ler tudo a que têm
+    // acesso, mas nunca gravar nada — independentemente dos módulos listados.
+    function isReadOnly() {
+      return isActive() && userRole().readOnly == true;
+    }
+
+    function isAdmin() {
+      return isActive() && !isReadOnly() && ('*' in userRole().permissoes);
+    }
+
+    function hasModule(mod) {
+      return isActive() && !isReadOnly() && (('*' in userRole().permissoes) || (mod in userRole().permissoes));
+    }
+
+    // ---------------- USUÁRIOS E PERMISSÕES ----------------
+    match /users/{userId} {
+      allow read: if isActive();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow delete: if false; // usuários são desativados, nunca excluídos
+    }
+
+    match /roles/{roleId} {
+      allow read: if isActive();
+      allow write: if isAdmin();
+    }
+
+    // ---------------- EDIÇÕES DO RETIRO ----------------
+    // Qualquer usuário ativo pode ler (necessário para o seletor de edições
+    // e para o Dashboard); somente administradores criam/editam edições.
+    match /editions/{id} {
+      allow read: if isActive();
+      allow create, update: if isAdmin();
+      allow delete: if false; // edições nunca são excluídas, apenas mantidas no histórico
+    }
+
+    // ---------------- CATEGORIAS ----------------
+    // Usadas em vários módulos (financeiro, tipos de acomodação/classificação
+    // definidos em Configurações). Leitura ampla, escrita restrita.
+    match /categories/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('financial');
+    }
+
+    // ---------------- PARTICIPANTES ----------------
+    // Leitura ampla (o Dashboard soma participantes para todos os perfis).
+    // Escrita liberada para quem administra participantes, acomodações ou gincana
+    // (essas telas também atualizam o participante ao alocar quarto/equipe).
+    match /participants/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('participants') || hasModule('rooms') || hasModule('gymkhana');
+    }
+
+    // ---------------- ACOMODAÇÕES ----------------
+    match /rooms/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('rooms');
+    }
+
+    // ---------------- FINANCEIRO ----------------
+    match /incomes/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('financial');
+    }
+    match /expenses/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('financial') || hasModule('shopping'); // saída automática gerada pela lista de compras
+    }
+
+    // ---------------- ARRECADAÇÕES ----------------
+    match /fundraisers/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('fundraisers');
+    }
+
+    // ---------------- LISTA DE COMPRAS ----------------
+    match /shoppingItems/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('shopping');
+    }
+
+    // ---------------- PROGRAMAÇÃO ----------------
+    match /scheduleItems/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('schedule');
+    }
+
+    // ---------------- GINCANA ----------------
+    match /teams/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('gymkhana');
+    }
+    match /games/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('gymkhana');
+    }
+    match /gameScores/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('gymkhana');
+    }
+
+    // ---------------- AUDITORIA ----------------
+    // Qualquer usuário ativo pode ler o histórico e gravar novas entradas
+    // (a própria aplicação grava a cada ação). Nunca é editado ou apagado.
+    match /auditLog/{id} {
+      allow read: if isActive();
+      allow create: if isActive();
+      allow update, delete: if false;
+    }
+
+    // ---------------- EVENTOS ----------------
+    match /eventTypes/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('events');
+    }
+    match /events/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('events');
+    }
+
+    // ---------------- EQUIPE E RESPONSÁVEIS ----------------
+    // Qualquer usuário ativo pode gerenciar a equipe — é um diretório de
+    // contatos/áreas, não dados sensíveis por perfil.
+    match /areas/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('team');
+    }
+    match /people/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('team');
+    }
+
+    // ---------------- CHECKLISTS ----------------
+    // Qualquer usuário ativo pode criar/gerenciar checklists e tarefas —
+    // é uma ferramenta de organização do dia a dia, não dados sensíveis.
+    match /checklists/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('checklists');
+    }
+    match /checklistSections/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('checklists');
+    }
+    match /checklistItems/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('checklists');
+    }
+
+    // ---------------- ESTOQUE ----------------
+    match /inventoryLocations/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('inventory');
+    }
+    match /inventoryItems/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('inventory');
+    }
+    match /inventoryMovements/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('inventory');
+    }
+
+    // ---------------- PARCELAMENTOS (CARTÃO DE CRÉDITO) ----------------
+    match /installmentPlans/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('financial');
+    }
+    match /installments/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('financial');
+    }
+
+    // ---------------- CAIXA EM ESPÉCIE ----------------
+    match /cashDeposits/{id} {
+      allow read: if isActive();
+      allow write: if isAdmin() || hasModule('financial');
+    }
+
+    // ---------------- APARÊNCIA / IDENTIDADE VISUAL ----------------
+    // Leitura pública (sem exigir login) porque a própria tela de login
+    // precisa mostrar o nome, a logo e a cor customizados pelo administrador.
+    // Não contém nenhum dado sensível — apenas nome, URL/logo e cor do tema.
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

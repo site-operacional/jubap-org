@@ -1,0 +1,12 @@
+{
+  "name": "retiro-firebase-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}
